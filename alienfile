@@ -1,11 +1,7 @@
 use alienfile;
 
-# replace this with your own system probe.
-# See Alien::Build::Plugin::Probe and
-# Alien::Build::Plugin::PkgConfig for common
-# probe plugins.
-
 use File::Which qw(which);
+use Path::Tiny qw( path );
 use Capture::Tiny qw(capture_merged);
 
 probe sub {
@@ -42,18 +38,27 @@ probe sub {
   return 'system';
 };
 
-share {
-  start_url 'https://github.com/openjdk/jdk/archive/refs/tags';
-  plugin Download => (
-    filter  => qr/^jdk.*tar\.gz$/,
-    version => qr/([0-9\.]+)/,
+sub do_source {
+  # This requires a valid boot JDK.
+  # See <https://hg.openjdk.java.net/jdk/jdk/raw-file/tip/doc/building.html#boot-jdk-requirements>.
+  plugin 'Download::GitHub' => (
+    github_user => 'openjdk',
+    github_repo => 'jdk',
+    tags_only   => 1,
   );
-  plugin Extract => 'tar.gz';
-  plugin 'Build::Autoconf';
+  plugin 'Build::Autoconf' => (
+    with_pic => 0,
+  );
+  patch sub {
+    path('configure')->chmod('u+x');
+  };
   build [
-    '%{configure} --enable-static --disable-shared',
+    '%{configure}',
     '%{make}',
     '%{make} install',
   ];
-  plugin 'Gather::IsolateDynamic';
+}
+
+share {
+  do_source;
 }
