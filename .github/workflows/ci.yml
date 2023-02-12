@@ -97,6 +97,7 @@ jobs:
         if: runner.os == 'macOS' && matrix.alien-install-type == 'system'
         run: |
           brew install ${{ env.PKG_HOMEBREW }}
+          sudo ln -sfn $(brew --prefix)/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
       - name: Set up MSYS2
         uses: msys2/setup-msys2@v2
         if: runner.os == 'Windows' && matrix.dist == 'msys2'
