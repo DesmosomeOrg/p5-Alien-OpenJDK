@@ -1,0 +1,59 @@
+use alienfile;
+
+# replace this with your own system probe.
+# See Alien::Build::Plugin::Probe and
+# Alien::Build::Plugin::PkgConfig for common
+# probe plugins.
+
+use File::Which qw(which);
+use Capture::Tiny qw(capture_merged);
+
+probe sub {
+  my ($build) = @_;
+  my @bins = qw(java javac);
+  for my $bin (@bins) {
+    $build->log("Looking for $bin");
+    return 'share' unless which($bin);
+  }
+
+  # Check JVM and javac version
+  my ($java_version_out) = capture_merged {
+    system( qw(java -version) );
+  };
+  my ($version_via_java) = $java_version_out =~ /^openjdk version "([0-9\.]+)"/m;
+  $build->log("java has OpenJDK version: $version_via_java");
+
+  my ($javac_version_out) = capture_merged {
+    system( qw(javac -version) );
+  };
+  my ($version_via_javac) = $javac_version_out =~ /^javac ([0-9\.]+)/m;
+  $build->log("javac has version: $version_via_javac");
+
+  return 'share' unless $version_via_java eq $version_via_javac;
+
+  # Get settings including java.home
+  my ($java_settings_out) = capture_merged {
+    system( qw(java -XshowSettings:properties) );
+  };
+  my ($java_home) = $java_settings_out =~ /^\s*\Qjava.home\E\s+=\s+(.+)$/m;
+  $build->log("JAVA_HOME: $java_home");
+  $build->runtime_prop->{java_home} = $java_home;
+
+  return 'system';
+};
+
+share {
+  start_url 'https://github.com/openjdk/jdk/archive/refs/tags';
+  plugin Download => (
+    filter  => qr/^jdk.*tar\.gz$/,
+    version => qr/([0-9\.]+)/,
+  );
+  plugin Extract => 'tar.gz';
+  plugin 'Build::Autoconf';
+  build [
+    '%{configure} --enable-static --disable-shared',
+    '%{make}',
+    '%{make} install',
+  ];
+  plugin 'Gather::IsolateDynamic';
+}
