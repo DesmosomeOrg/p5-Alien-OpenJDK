@@ -6,9 +6,9 @@ use Alien::OpenJDK;
 alien_diag 'Alien::OpenJDK';
 alien_ok 'Alien::OpenJDK';
 
-# run_ok([ ... ])
-#   ->success
-#   ->out_like(qr/ ... /);
+ run_ok([ qw(java -version) ])
+   ->success
+   ->err_like(qr/^openjdk version "([0-9\.]+)"/m);
 
 # my $xs = <<'END';
 # #include "EXTERN.h"
