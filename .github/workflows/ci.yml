@@ -111,6 +111,11 @@ jobs:
         run: |
           pacman -S --needed --noconfirm ${{ env.PKG_MSYS2_MINGW64 }}
 
+      - name: Install unzip on Windows
+        if: runner.os == 'Windows' && matrix.dist == 'strawberry'
+        run:
+          choco install -y --allowemptychecksum unzip
+
       # Setup Perl
       - name: Set up perl
         uses: shogo82148/actions-setup-perl@v1
